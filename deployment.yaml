@@ -16,6 +16,13 @@ spec:
     metadata:
       labels:
         app: central
+      annotations:
+        # prometheus собирает /metrics с admin-listener'а (basic_auth — общий
+        # grafana-scraper из prometheus server-config, креды совпадают с секретом)
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/metrics"
+        prometheus.io/scheme: "http"
     spec:
       containers:
         - name: central
