@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: central
+  namespace: aircul-bot
+  labels:
+    app: central
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # SQLite: один писатель, старый под гасится до поднятия нового
+  selector:
+    matchLabels:
+      app: central
+  template:
+    metadata:
+      labels:
+        app: central
+    spec:
+      containers:
+        - name: central
+          image: kroune/aircul-bot:main
+          imagePullPolicy: Always
+          env:
+            - name: CONFIG_PATH
+              value: /etc/central/config.yaml
+            - name: TELEGRAM_TOKEN
+              valueFrom:
+                secretKeyRef: { name: central-secrets, key: TELEGRAM_TOKEN }
+            - name: TELEGRAM_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef: { name: central-secrets, key: TELEGRAM_WEBHOOK_SECRET }
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef: { name: central-secrets, key: OPENROUTER_API_KEY }
+            - name: ADMIN_USER
+              valueFrom:
+                secretKeyRef: { name: central-secrets, key: ADMIN_USER }
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: central-secrets, key: ADMIN_PASSWORD }
+          ports:
+            - { name: public, containerPort: 8080 }
+            - { name: admin, containerPort: 8081 }
+          volumeMounts:
+            - { name: config, mountPath: /etc/central, readOnly: true }
+            - { name: data, mountPath: /data }
+          readinessProbe:
+            httpGet: { path: /readyz, port: public }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: public }
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: "1", memory: 512Mi }
+      volumes:
+        - name: config
+          configMap:
+            name: central-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: central-data

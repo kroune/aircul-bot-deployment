@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: central-config
+  namespace: aircul-bot
+data:
+  config.yaml: |
+    server:
+      public_addr: ":8080"
+      admin_addr: ":8081"
+      read_header_timeout: 5s
+      shutdown_timeout: 10s
+
+    telegram:
+      mode: "webhook"
+      admin_chat_id: -5323380423
+      send_timeout: 10s
+      send_retries: 2
+
+    db:
+      path: "/data/central.db"
+      busy_timeout: 5s
+
+    llm:
+      base_url: "https://openrouter.ai/api/v1"
+      request_timeout: 60s
+      max_retries: 2
+      max_parallel: 32
+      queue_size: 256
+      breaker_failures: 3
+      breaker_cooldown: 5m
+      fallback_chain:
+        - model: "openrouter/free"
+          providers: []
+
+    dialog:
+      history_window: 20
+      session_idle_timeout: 10m
+      typing_interval: 4s
+
+    rate_limit:
+      user_per_minute: 120
+      admin_per_minute: 60
+      reject_per_minute: 10
+
+    stages:
+      order: ["launch", "reveal-vector", "event-day"]
+      seed_schedule: {}
+      tick_interval: 1m
+      timezone: "Europe/Moscow"
+      warn_long: 24h
+      warn_short: 1h
+
+    seed:
+      knowledge_path: "/app/knowledge.md"
+      prompt_path: "/app/prompts/system.md"
+
+    texts:
+      start_message: "Централь на связи. Справочная система ЦУ-13 активна — спрашивайте."
+      start_buttons:
+        - { text: "Root Day 3", url: "https://example.com/rootday3" }
+        - { text: "Карта", url: "https://example.com/map" }
+        - { text: "Портал", url: "https://example.com/portal" }
+        - { text: "Каналы связи", url: "https://example.com/channels" }
+      overloaded_stub: "Системы убежища перегружены. Повторите запрос через минуту."
+      error_stub: "В работе систем убежища произошла ошибка. Дежурные инженеры оповещены — повторите запрос позже."
+      retry_notice: "Связь с вычислительным ядром нестабильна. Переключаюсь на резервный контур — ответ займёт чуть больше времени."
+      rate_limited: "Вы отправляете сообщения слишком часто. Дайте системам убежища передохнуть минуту."
+      updated_notice: "База данных ЦУ-13 обновлена. Актуальные сведения по изменённым темам:"
+      hidden_placeholder: "> Сведения по этой теме ещё не опубликованы."
+      alert_llm_down: "Все провайдеры LLM из цепочки fallback недоступны. Пользователи получают заглушку."
+      alert_restart: "Централь перезапущена и снова на связи."
+      alert_stage_warn_long: "До перехода в стадию «%[2]s» осталось %.0f ч (переход в %[3]s)."
+      alert_stage_warn_short: "До перехода в стадию «%[2]s» осталось %.0f мин."
