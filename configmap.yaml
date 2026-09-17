@@ -22,7 +22,7 @@ data:
       busy_timeout: 5s
 
     llm:
-      base_url: "https://openrouter.ai/api/v1"
+      base_url: "https://llm-proxy.spirit.culab.ru/v1"
       request_timeout: 60s
       max_retries: 2
       max_parallel: 32
@@ -30,7 +30,7 @@ data:
       breaker_failures: 3
       breaker_cooldown: 5m
       fallback_chain:
-        - model: "openrouter/free"
+        - model: "openrouter/moonshotai/kimi-k3"
           providers: []
 
     dialog:
