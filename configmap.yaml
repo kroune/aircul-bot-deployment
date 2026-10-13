@@ -64,7 +64,7 @@ data:
       warn_short: 1h
 
     seed:
-      knowledge_path: "/app/knowledge.md"
+      knowledge_path: "/app/prompts/knowledge.md"
       prompt_path: "/app/prompts/system.md"
 
     texts:
