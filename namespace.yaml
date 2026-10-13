@@ -2,7 +2,3 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: aircul-bot
-  labels:
-    # ambient-режим Istio: egress к api.telegram.org идёт через AWG-туннель
-    # (см. infra/istio-awg-egress в kuber-configs)
-    istio.io/dataplane-mode: ambient

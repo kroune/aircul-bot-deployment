@@ -4,25 +4,35 @@ metadata:
   name: central-config
   namespace: aircul-bot
 data:
+  # Прод-конфиг «Централи». Секреты — только через env (Secret central-secrets):
+  # TELEGRAM_TOKEN, TELEGRAM_WEBHOOK_SECRET, OPENROUTER_API_KEY,
+  # ADMIN_USER, ADMIN_PASSWORD, DATABASE_URL (managed PostgreSQL, внешний).
+  # Схема конфига строгая (неизвестный ключ — ошибка старта), эталон —
+  # config.example.yaml в репозитории кода (cu-3rd-party/aircul-bot).
   config.yaml: |
     server:
-      public_addr: ":8080"
-      admin_addr: ":8081"
+      public_addr: ":8080"  # webhook + healthz (за ingress с TLS)
+      admin_addr: ":8081"   # admin API + metrics (наружу не публикуется)
       read_header_timeout: 5s
       shutdown_timeout: 10s
 
     telegram:
       mode: "webhook"
-      admin_chat_id: -5323380423
+      admin_chat_id: -5323380423  # чат для алертов и предупреждений о стадиях
       send_timeout: 10s
       send_retries: 2
 
     db:
-      path: "/data/central.db"
-      busy_timeout: 5s
+      # DSN (с паролем) — из env DATABASE_URL, в файле не хранится.
+      max_conns: 20
+      min_conns: 2
+      max_conn_lifetime: 30m
+      max_conn_idle_time: 5m
+      health_check_period: 30s
+      connect_timeout: 5s
 
     llm:
-      base_url: "https://llm-proxy.spirit.culab.ru/v1"
+      base_url: "https://llm-proxy.spirit.t-education.com/v1"
       request_timeout: 60s
       max_retries: 2
       max_parallel: 32
@@ -44,8 +54,10 @@ data:
       reject_per_minute: 10
 
     stages:
-      order: ["launch", "reveal-vector", "event-day"]
-      seed_schedule: {}
+      order: ["launch", "reveal-factions", "reveal-passport", "reveal-heroes", "reveal-vector", "reveal-eclipse", "reveal-bingo", "reveal-rewards", "event-day", "act-1", "act-3", "act-4", "act-5", "finale", "post-event"]
+      seed_schedule:
+        event-day: "2026-11-08T14:30:00"   # открытие входа; страховка, основной путь — ручной override (docs/EVENTDAY_RUNBOOK.md)
+        post-event: "2026-11-09T00:00:00"  # после завершения Посвята
       tick_interval: 1m
       timezone: "Europe/Moscow"
       warn_long: 24h
@@ -58,10 +70,8 @@ data:
     texts:
       start_message: "Централь на связи. Справочная система ЦУ-13 активна — спрашивайте."
       start_buttons:
-        - { text: "Root Day 3", url: "https://example.com/rootday3" }
-        - { text: "Карта", url: "https://example.com/map" }
-        - { text: "Портал", url: "https://example.com/portal" }
-        - { text: "Каналы связи", url: "https://example.com/channels" }
+        - { text: "Канал Посвята", url: "https://t.me/rootday26" }
+        - { text: "Чат Посвята", url: "https://t.me/+lfmMm6UYUgw0YzVi" }
       overloaded_stub: "Системы убежища перегружены. Повторите запрос через минуту."
       error_stub: "В работе систем убежища произошла ошибка. Дежурные инженеры оповещены — повторите запрос позже."
       retry_notice: "Связь с вычислительным ядром нестабильна. Переключаюсь на резервный контур — ответ займёт чуть больше времени."
@@ -70,5 +80,5 @@ data:
       hidden_placeholder: "> Сведения по этой теме ещё не опубликованы."
       alert_llm_down: "Все провайдеры LLM из цепочки fallback недоступны. Пользователи получают заглушку."
       alert_restart: "Централь перезапущена и снова на связи."
-      alert_stage_warn_long: "До перехода в стадию «%[2]s» осталось %.0f ч (переход в %[3]s)."
-      alert_stage_warn_short: "До перехода в стадию «%[2]s» осталось %.0f мин."
+      alert_stage_warn_long: "Через %.0f ч планируется переключение стадии на «%s» (%s). Если планы сдвинулись — обновите расписание или поставьте override."
+      alert_stage_warn_short: "Через %.0f мин планируется переключение стадии на «%s»."

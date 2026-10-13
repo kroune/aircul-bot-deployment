@@ -7,8 +7,6 @@ metadata:
     app: central
 spec:
   replicas: 1
-  strategy:
-    type: Recreate # SQLite: один писатель, старый под гасится до поднятия нового
   selector:
     matchLabels:
       app: central
@@ -24,9 +22,14 @@ spec:
         prometheus.io/path: "/metrics"
         prometheus.io/scheme: "http"
     spec:
+      # Секрет для pull приватного пакета GHCR:
+      #   kubectl -n aircul-bot create secret docker-registry ghcr-pull \
+      #     --docker-server=ghcr.io --docker-username=<user> --docker-password=<PAT read:packages>
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: central
-          image: kroune/aircul-bot:main
+          image: ghcr.io/cu-3rd-party/aircul-bot:main
           imagePullPolicy: Always
           env:
             - name: CONFIG_PATH
@@ -46,12 +49,15 @@ spec:
             - name: ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef: { name: central-secrets, key: ADMIN_PASSWORD }
+            # Managed PostgreSQL (внешний; бэкапы на стороне провайдера).
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef: { name: central-secrets, key: DATABASE_URL }
           ports:
             - { name: public, containerPort: 8080 }
             - { name: admin, containerPort: 8081 }
           volumeMounts:
             - { name: config, mountPath: /etc/central, readOnly: true }
-            - { name: data, mountPath: /data }
           readinessProbe:
             httpGet: { path: /readyz, port: public }
             initialDelaySeconds: 3
@@ -61,12 +67,9 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 20
           resources:
-            requests: { cpu: 50m, memory: 128Mi }
-            limits: { cpu: "1", memory: 512Mi }
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1.5", memory: 2Gi }
       volumes:
         - name: config
           configMap:
             name: central-config
-        - name: data
-          persistentVolumeClaim:
-            claimName: central-data
